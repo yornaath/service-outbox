@@ -8,8 +8,14 @@ It can be tailed and has schema validation.
 It also ha support for using a session with a transaction to ensure atomicity in modifying state and publishing an event.
 
 ### Inspired by
+
+Talks and papers by Chris Richardson]
+
 [Using sagas to maintain data consistency in a microservice architecture by Chris Richardson](https://www.youtube.com/watch?v=YPbGW3Fnmbc)
+
 [Pattern: Transactional outbox](https://microservices.io/patterns/data/transactional-outbox.html)
+
+## Real world example
 
 ```typescript
 import { ServiceOutbox } from "@piing/service-outbox"
