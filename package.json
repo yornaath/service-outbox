@@ -1,14 +1,14 @@
 {
   "name": "@piing/service-outbox",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A mongodb drive service outbox for storing a micro servuce outbound events",
-  "main": "./lib/index.js",
-  "typings": "./lib/index.d.ts",
+  "main": "./dist/index.js",
+  "typings": "./dist/index.d.ts",
   "keywords": [],
   "scripts": {
     "build": "tsc -d && sleep 2",
     "dev": "tsc -d --watch",
-    "clean": "rm -rf ./lib",
+    "clean": "rm -rf ./dist",
     "prepublish": "npm run test && npm run build",
     "test": "mocha --require ts-node/register ./tests/**/*.ts",
     "prebuild": "npm audit && npm run clean && npm run test"
