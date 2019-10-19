@@ -96,12 +96,12 @@ const worker = async() => {
 
   const [outbox$, scheduler, close] = outbox.tail(cursor)
 
-  const log$ = tap(async (orderServiceMessage) => {
+  const published$ = tap(async (orderServiceMessage) => {
     await publishToKafka("orders", orderServiceMessage.type, orderServiceMessage.data)
     await setLatestPublishedServiceCreatedDate(orderServiceMessage.created)
   }, outbox$,)
 
-  runEffects(log$, scheduler)
+  runEffects(published$, scheduler)
 
 }
 
