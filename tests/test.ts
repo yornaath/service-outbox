@@ -1,6 +1,6 @@
 require("dotenv/config")
 
-import bluebird from 'bluebird'
+import bluebird, { delay } from 'bluebird'
 import * as shortid from 'shortid'
 import { tap, runEffects, map, take } from "@most/core"
 import * as mocha from "mocha"
@@ -75,7 +75,7 @@ describe("ServiceOutbox", () => {
 
     let cursor = new Date()
 
-    it("open a tail on empty outbox works", (done) => {
+    it("should open a tail on empty outbox works", (done) => {
       
       const [stream$, scheduler, close] = outbox.tail()
 
@@ -111,7 +111,7 @@ describe("ServiceOutbox", () => {
       
     }).timeout(10000)
 
-    it("open a tail after a certain date", (done) => {
+    it("should open a tail after a certain date", (done) => {
       
       const [stream$, scheduler, close] = outbox.tail(cursor)
 
@@ -120,8 +120,9 @@ describe("ServiceOutbox", () => {
       const tapped$ = tap((message) => {
         if(message.type === "foo")
           if(message.data.fooval === "end") {
-            assert.deepEqual(a, ["1","2","3"])
+            assert.deepEqual(a, ["4","5","6"])
             setImmediate(async () => {
+              cursor = message.created
               await close()
               done()
             })
@@ -135,7 +136,7 @@ describe("ServiceOutbox", () => {
 
         session.startTransaction()
 
-        outbox.put(["1", "2", "3", "end"].map(n => ({
+        outbox.put(["4", "5", "6", "end"].map(n => ({
           type: "foo",
           data: {
             fooval: n
@@ -145,6 +146,48 @@ describe("ServiceOutbox", () => {
       })
       
     }).timeout(10000)
+
+    it("should not push messages before transaction is commited", (done) => {
+      
+      const [stream$, scheduler, close] = outbox.tail(cursor)
+
+      let a: string[] = []
+
+      const tapped$ = tap((message) => {
+        if(message.type === "foo")
+          if(message.data.fooval === "end") {
+            assert.deepEqual(a, ["7","8","9"])
+            setImmediate(async () => {
+              cursor = message.created
+              await close()
+              done()
+            })
+          } else
+            a = [...a, message.data.fooval]
+      }, stream$)
+
+      runEffects(tapped$, scheduler)
+
+      mongoose.startSession().then(async session => {
+
+        session.startTransaction()
+
+        await outbox.put(["7", "8", "9", "end"].map(n => ({
+          type: "foo",
+          data: {
+            fooval: n
+          }
+        })), session, { autoCommit: false })
+
+        await delay(2000)
+        
+        assert.equal(a.length, 0)
+
+        await session.commitTransaction()
+
+      })
+      
+    }).timeout(15000)
 
   })
   
