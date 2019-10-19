@@ -9,7 +9,7 @@ It also ha support for using a session with a transaction to ensure atomicity in
 
 ### Inspired by
 
-Talks and papers by Chris Richardson]
+Talks and papers by Chris Richardson
 
 [Using sagas to maintain data consistency in a microservice architecture by Chris Richardson](https://www.youtube.com/watch?v=YPbGW3Fnmbc)
 
