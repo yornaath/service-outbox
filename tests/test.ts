@@ -75,7 +75,7 @@ describe("ServiceOutbox", () => {
 
     let cursor = new Date()
 
-    it("should open a tail on empty outbox works", (done) => {
+    it("should be able to open a tail on empty outbox collection", (done) => {
       
       const [stream$, scheduler, close] = outbox.tail()
 
