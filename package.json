@@ -1,0 +1,41 @@
+{
+  "name": "@piing/service-outbox",
+  "version": "0.0.1",
+  "description": "A mongodb drive service outbox for storing a micro servuce outbound events",
+  "main": "./lib/index.js",
+  "typings": "./lib/index.d.ts",
+  "keywords": [],
+  "scripts": {
+    "build": "tsc -d && sleep 2",
+    "dev": "tsc -d --watch",
+    "clean": "rm -rf ./lib",
+    "prepublish": "npm run test && npm run build",
+    "test": "mocha --require ts-node/register ./tests/**/*.ts",
+    "prebuild": "npm audit && npm run clean && npm run test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/piing-as/service-outbox.git"
+  },
+  "author": "Jørn Andre Tangen @gorillatron",
+  "license": "PRIVATE",
+  "dependencies": {
+    "@most/core": "^1.5.0",
+    "@most/scheduler": "^1.2.3",
+    "fp-ts": "^2.1.0",
+    "mongoose": "^5.7.5"
+  },
+  "devDependencies": {
+    "@most/types": "^1.0.2",
+    "@types/bluebird": "^3.5.28",
+    "@types/mocha": "^5.2.7",
+    "@types/mongoose": "^5.5.21",
+    "@types/shortid": "0.0.29",
+    "bluebird": "^3.7.1",
+    "dotenv": "^8.2.0",
+    "mocha": "^6.2.1",
+    "shortid": "^2.2.15",
+    "ts-node": "^8.4.1",
+    "typescript": "^3.6.4"
+  }
+}
