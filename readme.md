@@ -98,6 +98,8 @@ const worker = async() => {
 
   const published$ = tap(async (orderServiceMessage) => {
     await publishToKafka("orders", orderServiceMessage.type, orderServiceMessage.data)
+      // Note: if the server where to crash here, its a chance the message can be sent twice.
+      // But that is a better option than loosing a message
     await setLatestPublishedServiceCreatedDate(orderServiceMessage.created)
   }, outbox$,)
 
