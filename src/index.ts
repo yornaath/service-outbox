@@ -129,9 +129,9 @@ export class ServiceOutbox<T extends TOutboxAbstractMessageType, TM extends TOu
     }
 
     const close = async () => {
-      pushEvent(right("end"))
       if(cursor)
         await cursor.close()
+      pushEvent(right("end"))
     }
 
     setImmediate(openDatabaseTail)
