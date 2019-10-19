@@ -1,11 +1,15 @@
 
-#@piing/service-outbox
+# @piing/service-outbox
 
 A module that uses mongodb and creates a tailable capped collection for publishing events for a microservice.
 
 It can be tailed and has schema validation.
 
 It also ha support for using a session with a transaction to ensure atomicity in modifying state and publishing an event.
+
+### Inspired by
+[Using sagas to maintain data consistency in a microservice architecture by Chris Richardson](https://www.youtube.com/watch?v=YPbGW3Fnmbc)
+[Pattern: Transactional outbox](https://microservices.io/patterns/data/transactional-outbox.html)
 
 ```typescript
 import { ServiceOutbox } from "@piing/service-outbox"
