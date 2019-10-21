@@ -1,13 +1,14 @@
 require("dotenv/config")
 
-import bluebird, { delay } from 'bluebird'
-import * as shortid from 'shortid'
-import { tap, runEffects, map, take } from "@most/core"
 import * as mocha from "mocha"
+import { delay } from 'bluebird'
+import * as shortid from 'shortid'
+import { tap, runEffects, merge, zip } from "@most/core"
 import mongoose from "mongoose"
 import * as assert from "assert"
-import { isRight } from "fp-ts/lib/Either"
+import _range from "lodash.range"
 import { ServiceOutbox } from "../src"
+import { newDefaultScheduler } from "@most/scheduler"
 
 describe("ServiceOutbox", () => {
 
@@ -60,7 +61,7 @@ describe("ServiceOutbox", () => {
           }
         }
       }
-    })
+    }, {max: 1500})
   })
 
   after((done) => {
@@ -77,7 +78,8 @@ describe("ServiceOutbox", () => {
 
     it("should be able to open a tail on empty outbox collection", (done) => {
       
-      const [stream$, scheduler, close] = outbox.tail()
+      const [stream$, close] = outbox.tail()
+      const scheduler = newDefaultScheduler()
 
       let a: string[] = []
 
@@ -113,7 +115,8 @@ describe("ServiceOutbox", () => {
 
     it("should open a tail after a certain date", (done) => {
       
-      const [stream$, scheduler, close] = outbox.tail(cursor)
+      const [stream$, close] = outbox.tail(cursor)
+      const scheduler = newDefaultScheduler()
 
       let a: string[] = []
 
@@ -149,7 +152,8 @@ describe("ServiceOutbox", () => {
 
     it("should not push messages before transaction is commited", (done) => {
       
-      const [stream$, scheduler, close] = outbox.tail(cursor)
+      const [stream$, close] = outbox.tail(cursor)
+      const scheduler = newDefaultScheduler()
 
       let a: string[] = []
 
@@ -188,6 +192,100 @@ describe("ServiceOutbox", () => {
       })
       
     }).timeout(15000)
+
+    it('should be able to tail concurrently', (done) => {
+      
+      const [streamA$, closeA] = outbox.tail(cursor)
+      const [streamB$, closeB] = outbox.tail(cursor)
+
+      const scheduler = newDefaultScheduler()
+
+      const combined$ = zip((a,b) => {
+        return [
+          a.type == "foo" ? a.data.fooval : a.data.lolval,
+          b.type == "foo" ? b.data.fooval : b.data.lolval
+        ]
+      }, streamA$, streamB$)
+
+      let cache: string[] = []
+
+      const tapped$ = tap(async ([a, b]) => {
+        cache = [...cache, `${a}${b}`]
+        if(a == "end" && b == "end") {
+          assert.deepEqual(cache, ["aa", "bb", "cc", "endend"])
+          await closeA()
+          await closeB()
+          await done()
+        }
+      }, combined$)
+
+      runEffects(tapped$, scheduler)
+
+      mongoose.startSession().then(async session => {
+
+        session.startTransaction()
+
+        await outbox.put(["a", "b", "c", "end"].map(n => ({
+          type: "lol",
+          data: {
+            lolval: n
+          }
+        })), session, { autoCommit: false })
+
+        await session.commitTransaction()
+
+      })
+
+    }).timeout(15 * 1000)
+
+    // it("should handle large ammount of events", (done) => {
+      
+    //   const [stream$, scheduler, close] = outbox.tail(cursor)
+
+    //   const range = _range(11, 999).map(n => `${n}`)
+
+    //   let buffer: string[] = []
+
+    //   const tapped$ = tap((message) => {
+    //     if(message.type === "lol")
+    //       if(message.data.lolval === "end") {
+    //         assert.deepEqual(buffer, range)
+    //         setImmediate(async () => {
+    //           cursor = message.created
+    //           await close()
+    //           done()
+    //         })
+    //       } else
+    //         buffer = [...buffer, message.data.lolval]
+    //   }, stream$)
+
+    //   runEffects(tapped$, scheduler)
+
+    //   mongoose.startSession().then(async session => {
+
+    //     for(const n of range) {
+    //       session.startTransaction()
+    //       await outbox.put({
+    //         type: "lol",
+    //         data: {
+    //           lolval: n
+    //         }
+    //       }, session)
+    //       await session.commitTransaction()
+    //     }
+
+    //     session.startTransaction()
+    //     await outbox.put({
+    //       type: "lol",
+    //       data: {
+    //         lolval: 'end'
+    //       }
+    //     }, session)
+    //     await session.commitTransaction()
+
+    //   })
+      
+    // }).timeout(250 * 1000)
 
   })
   

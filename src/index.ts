@@ -92,8 +92,7 @@ export class ServiceOutbox<T extends TOutboxAbstractMessageType, TM extends TOu
     return out
   }
 
-  tail(after?: Date): [Stream<TM>, Scheduler, () => void] {
-    const scheduler = newDefaultScheduler();
+  tail(after?: Date): [Stream<TM>, () => void] {
     const [ pushEvent, stream$ ] = createAdapter<TM>()
 
     const awaitInterval = this.config && this.config.awaitInterval ? this.config.awaitInterval : 200;
@@ -136,7 +135,7 @@ export class ServiceOutbox<T extends TOutboxAbstractMessageType, TM extends TOu
 
     setImmediate(openDatabaseTail)
 
-    return [stream$, scheduler, close]
+    return [stream$, close]
   }
 
 }
