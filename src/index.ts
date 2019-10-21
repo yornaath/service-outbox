@@ -1,12 +1,10 @@
 
-import { Stream, Scheduler } from '@most/types'
+import { Stream } from '@most/types'
 import { right, left } from 'fp-ts/lib/Either'
-import { newDefaultScheduler } from '@most/scheduler'
 import { delay } from 'bluebird'
-import { Schema, SchemaDefinition, Model, Document, model, QueryCursor, ClientSession, DocumentQuery, Query } from 'mongoose'
+import { Schema, SchemaDefinition, Model, Document, model, QueryCursor, ClientSession } from 'mongoose'
 import { createAdapter } from './lib/streamadapter'
 import { isArray } from 'util'
-
 
 export type TOutboxAbstractMessageType = {
   type: string

@@ -79,7 +79,6 @@ describe("ServiceOutbox", () => {
     it("should be able to open a tail on empty outbox collection", (done) => {
       
       const [stream$, close] = outbox.tail()
-      const scheduler = newDefaultScheduler()
 
       let a: string[] = []
 
@@ -96,7 +95,7 @@ describe("ServiceOutbox", () => {
             a = [...a, message.data.fooval]
       }, stream$)
 
-      runEffects(tapped$, scheduler)
+      runEffects(tapped$, newDefaultScheduler())
 
       mongoose.startSession().then(session => {
 
@@ -121,8 +120,6 @@ describe("ServiceOutbox", () => {
         }
       })
 
-      const scheduler = newDefaultScheduler()
-
       let a: string[] = []
 
       const tapped$ = tap((message) => {
@@ -138,7 +135,7 @@ describe("ServiceOutbox", () => {
             a = [...a, message.data.fooval]
       }, stream$)
 
-      runEffects(tapped$, scheduler)
+      runEffects(tapped$, newDefaultScheduler())
 
       mongoose.startSession().then(session => {
 
@@ -163,8 +160,6 @@ describe("ServiceOutbox", () => {
         }
       })
 
-      const scheduler = newDefaultScheduler()
-
       let a: string[] = []
 
       const tapped$ = tap((message) => {
@@ -180,7 +175,7 @@ describe("ServiceOutbox", () => {
             a = [...a, message.data.lolval]
       }, stream$)
 
-      runEffects(tapped$, scheduler)
+      runEffects(tapped$, newDefaultScheduler())
 
       mongoose.startSession().then(async session => {
 
@@ -217,8 +212,6 @@ describe("ServiceOutbox", () => {
         }
       })
 
-      const scheduler = newDefaultScheduler()
-
       const combined$ = zip((a,b) => {
         if(a.created > cursor) cursor = a.created
         if(b.created > cursor) cursor = b.created
@@ -240,7 +233,7 @@ describe("ServiceOutbox", () => {
         }
       }, combined$)
 
-      runEffects(tapped$, scheduler)
+      runEffects(tapped$, newDefaultScheduler())
 
       mongoose.startSession().then(async session => {
 
