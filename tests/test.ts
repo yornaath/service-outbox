@@ -115,7 +115,12 @@ describe("ServiceOutbox", () => {
 
     it("should open a tail after a certain date", (done) => {
       
-      const [stream$, close] = outbox.tail(cursor)
+      const [stream$, close] = outbox.tail({
+        created: {
+          $gt: cursor
+        }
+      })
+
       const scheduler = newDefaultScheduler()
 
       let a: string[] = []
@@ -152,7 +157,12 @@ describe("ServiceOutbox", () => {
 
     it("should not push messages before transaction is commited", (done) => {
       
-      const [stream$, close] = outbox.tail(cursor)
+      const [stream$, close] = outbox.tail({
+        created: {
+          $gt: cursor
+        }
+      })
+
       const scheduler = newDefaultScheduler()
 
       let a: string[] = []
@@ -195,12 +205,23 @@ describe("ServiceOutbox", () => {
 
     it('should be able to tail concurrently', (done) => {
       
-      const [streamA$, closeA] = outbox.tail(cursor)
-      const [streamB$, closeB] = outbox.tail(cursor)
+      const [streamA$, closeA] = outbox.tail({
+        created: {
+          $gt: cursor
+        }
+      })
+
+      const [streamB$, closeB] = outbox.tail({
+        created: {
+          $gt: cursor
+        }
+      })
 
       const scheduler = newDefaultScheduler()
 
       const combined$ = zip((a,b) => {
+        if(a.created > cursor) cursor = a.created
+        if(b.created > cursor) cursor = b.created
         return [
           a.type == "foo" ? a.data.fooval : a.data.lolval,
           b.type == "foo" ? b.data.fooval : b.data.lolval
@@ -240,7 +261,11 @@ describe("ServiceOutbox", () => {
 
     // it("should handle large ammount of events", (done) => {
       
-    //   const [stream$, scheduler, close] = outbox.tail(cursor)
+    //   const [stream$, scheduler, close] = outbox.tail({
+      //   created: {
+      //     $gt: cursor
+      //   }
+      // })
 
     //   const range = _range(11, 999).map(n => `${n}`)
 

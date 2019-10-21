@@ -3,7 +3,7 @@ import { Stream, Scheduler } from '@most/types'
 import { right, left } from 'fp-ts/lib/Either'
 import { newDefaultScheduler } from '@most/scheduler'
 import { delay } from 'bluebird'
-import { Schema, SchemaDefinition, Model, Document, model, QueryCursor, ClientSession } from 'mongoose'
+import { Schema, SchemaDefinition, Model, Document, model, QueryCursor, ClientSession, DocumentQuery, Query } from 'mongoose'
 import { createAdapter } from './lib/streamadapter'
 import { isArray } from 'util'
 
@@ -92,7 +92,7 @@ export class ServiceOutbox<T extends TOutboxAbstractMessageType, TM extends TOu
     return out
   }
 
-  tail(after?: Date): [Stream<TM>, () => void] {
+  tail(query?: any): [Stream<TM>, () => void] {
     const [ pushEvent, stream$ ] = createAdapter<TM>()
 
     const awaitInterval = this.config && this.config.awaitInterval ? this.config.awaitInterval : 200;
@@ -107,14 +107,8 @@ export class ServiceOutbox<T extends TOutboxAbstractMessageType, TM extends TOu
         return openDatabaseTail()
       }
 
-      const query = after ? {
-        created: {
-          $gt: after
-        }
-      } : undefined
-
       cursor = this.messageModel
-        .find(query)
+        .find(query || undefined)
         .tailable()
         .cursor()
           .on('data', document => pushEvent(right(document)))
