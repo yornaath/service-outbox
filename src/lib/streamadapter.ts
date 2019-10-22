@@ -26,7 +26,8 @@ export class FanoutPortStream<A> {
 }
 
 export class RemovePortDisposable<A> implements Disposable {
-  constructor (private readonly sink: { sink: Sink<A>, scheduler: Scheduler }, private readonly sinks: { sink: Sink<A>, scheduler: Scheduler }[]) {}
+  constructor (private readonly sink: { sink: Sink<A>, scheduler: Scheduler }, 
+               private readonly sinks: { sink: Sink<A>, scheduler: Scheduler }[]) {}
 
   dispose () {
     const i = this.sinks.indexOf(this.sink)

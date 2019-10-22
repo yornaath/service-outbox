@@ -11,9 +11,11 @@ export type TOutboxAbstractMessageType = {
   data: object
 }
 
-export type TOutboxMessage <T extends TOutboxAbstractMessageType> = T & {
+export type TWithCreatedDate = {
   created: Date
 }
+
+export type TOutboxMessage <T extends TOutboxAbstractMessageType> = T & TWithCreatedDate
 
 export type TOutboxMessageScehma = {
   [type: string]: SchemaDefinition
@@ -25,10 +27,13 @@ export type TServiceOutboxConfiguration = {
   awaitInterval?: number
 }
 
+export type TOutboxTail<T extends TOutboxAbstractMessageType, TM extends TOutboxMessage<T> = T & TWithCreatedDate> = {
+  open(): void
+  close(): void
+  stream$: Stream<TM>
+}
 
-export class ServiceOutbox<T extends TOutboxAbstractMessageType, TM extends TOutboxMessage<T> = T & {
-  created: Date
-}> {
+export class ServiceOutbox<T extends TOutboxAbstractMessageType, TM extends TOutboxMessage<T> = T & TWithCreatedDate> {
 
   private messageModel: Model<TM & Document>
 
@@ -90,19 +95,19 @@ export class ServiceOutbox<T extends TOutboxAbstractMessageType, TM extends TOu
     return out
   }
 
-  tail(query?: any): [Stream<TM>, () => void] {
+  tail(query?: any): TOutboxTail<T, TM> {
     const [ pushEvent, stream$ ] = createAdapter<TM>()
 
     const awaitInterval = this.config && this.config.awaitInterval ? this.config.awaitInterval : 200;
 
     let cursor: QueryCursor<any>
 
-    const openDatabaseTail = async (): Promise<void> => {
+    const open = async (): Promise<void> => {
       const count = await this.messageModel.countDocuments()
 
       if(count === 0) {
         await delay(awaitInterval)
-        return openDatabaseTail()
+        return open()
       }
 
       cursor = this.messageModel
@@ -112,7 +117,7 @@ export class ServiceOutbox<T extends TOutboxAbstractMessageType, TM extends TOu
           .on('data', document => pushEvent(right(document)))
           .on('error', error => {
             if(error.message.toLowerCase().match('no more documents in tailed cursor'))
-              setTimeout(openDatabaseTail, awaitInterval)
+              setTimeout(open, awaitInterval)
             else
               pushEvent(left(error))
           })
@@ -125,9 +130,11 @@ export class ServiceOutbox<T extends TOutboxAbstractMessageType, TM extends TOu
       pushEvent(right("end"))
     }
 
-    setImmediate(openDatabaseTail)
-
-    return [stream$, close]
+    return {
+      open,
+      close,
+      stream$
+    }
   }
 
 }

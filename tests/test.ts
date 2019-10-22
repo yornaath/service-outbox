@@ -78,7 +78,7 @@ describe("ServiceOutbox", () => {
 
     it("should be able to open a tail on empty outbox collection", (done) => {
       
-      const [stream$, close] = outbox.tail()
+      const tail = outbox.tail()
 
       let a: string[] = []
 
@@ -88,14 +88,16 @@ describe("ServiceOutbox", () => {
             assert.deepEqual(a, ["1","2","3"])
             setImmediate(async () => {
               cursor = message.created
-              await close()
+              await tail.close()
               done()
             })
           } else
             a = [...a, message.data.fooval]
-      }, stream$)
+      }, tail.stream$)
 
       runEffects(tapped$, newDefaultScheduler())
+
+      tail.open()
 
       mongoose.startSession().then(session => {
 
@@ -114,7 +116,7 @@ describe("ServiceOutbox", () => {
 
     it("should open a tail after a certain date", (done) => {
       
-      const [stream$, close] = outbox.tail({
+      const tail = outbox.tail({
         created: {
           $gt: cursor
         }
@@ -128,14 +130,16 @@ describe("ServiceOutbox", () => {
             assert.deepEqual(a, ["4","5","6"])
             setImmediate(async () => {
               cursor = message.created
-              await close()
+              await tail.close()
               done()
             })
           } else
             a = [...a, message.data.fooval]
-      }, stream$)
+      }, tail.stream$)
 
       runEffects(tapped$, newDefaultScheduler())
+
+      tail.open()
 
       mongoose.startSession().then(session => {
 
@@ -154,7 +158,7 @@ describe("ServiceOutbox", () => {
 
     it("should not push messages before transaction is commited", (done) => {
       
-      const [stream$, close] = outbox.tail({
+      const tail = outbox.tail({
         created: {
           $gt: cursor
         }
@@ -168,14 +172,16 @@ describe("ServiceOutbox", () => {
             assert.deepEqual(a, ["7","8","9"])
             setImmediate(async () => {
               cursor = message.created
-              await close()
+              await tail.close()
               done()
             })
           } else
             a = [...a, message.data.lolval]
-      }, stream$)
+      }, tail.stream$)
 
       runEffects(tapped$, newDefaultScheduler())
+
+      tail.open()
 
       mongoose.startSession().then(async session => {
 
@@ -198,15 +204,61 @@ describe("ServiceOutbox", () => {
       
     }).timeout(15000)
 
-    it('should be able to tail concurrently', (done) => {
+    it("should buffer events received before stream is processed", (done) => {
       
-      const [streamA$, closeA] = outbox.tail({
+      const tail = outbox.tail({
         created: {
           $gt: cursor
         }
       })
 
-      const [streamB$, closeB] = outbox.tail({
+      mongoose.startSession().then(async session => {
+
+        session.startTransaction()
+
+        await outbox.put(["7", "8", "9", "end"].map(n => ({
+          type: "lol",
+          data: {
+            lolval: n
+          }
+        })), session, { autoCommit: false })
+
+        await session.commitTransaction()
+
+        await delay(4000)
+
+        let a: string[] = []
+
+        const tapped$ = tap((message) => {
+          if(message.type === "lol")
+            if(message.data.lolval === "end") {
+              assert.deepEqual(a, ["7","8","9"])
+              setImmediate(async () => {
+                cursor = message.created
+                await tail.close()
+                done()
+              })
+            } else
+              a = [...a, message.data.lolval]
+        }, tail.stream$)
+
+        runEffects(tapped$, newDefaultScheduler())
+
+        tail.open()
+
+      })
+      
+    }).timeout(15000)
+
+    it('should be able to tail concurrently', (done) => {
+      
+      const tailA = outbox.tail({
+        created: {
+          $gt: cursor
+        }
+      })
+
+      const tailB = outbox.tail({
         created: {
           $gt: cursor
         }
@@ -219,7 +271,7 @@ describe("ServiceOutbox", () => {
           a.type == "foo" ? a.data.fooval : a.data.lolval,
           b.type == "foo" ? b.data.fooval : b.data.lolval
         ]
-      }, streamA$, streamB$)
+      }, tailA.stream$, tailB.stream$)
 
       let cache: string[] = []
 
@@ -227,13 +279,16 @@ describe("ServiceOutbox", () => {
         cache = [...cache, `${a}${b}`]
         if(a == "end" && b == "end") {
           assert.deepEqual(cache, ["aa", "bb", "cc", "endend"])
-          await closeA()
-          await closeB()
+          await tailA.close()
+          await tailB.close()
           await done()
         }
       }, combined$)
 
       runEffects(tapped$, newDefaultScheduler())
+
+      tailA.open()
+      tailB.open()
 
       mongoose.startSession().then(async session => {
 
