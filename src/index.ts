@@ -100,10 +100,14 @@ export class ServiceOutbox<T extends TOutboxAbstractMessageType, TM extends TOu
 
     const awaitInterval = this.config && this.config.awaitInterval ? this.config.awaitInterval : 200;
 
+    let ended = false
     let cursor: QueryCursor<any>
 
     const open = async (): Promise<void> => {
       const count = await this.messageModel.countDocuments()
+
+      if(ended) 
+        throw new Error("trying to open an ended tail")
 
       if(count === 0) {
         await delay(awaitInterval)
@@ -120,14 +124,18 @@ export class ServiceOutbox<T extends TOutboxAbstractMessageType, TM extends TOu
               setTimeout(open, awaitInterval)
             else
               pushEvent(left(error))
+            ended = true
           })
           .on('close', () => pushEvent(right("end")))
     }
 
     const close = async () => {
+      if(ended) 
+        throw new Error("trying to close an ended tail stream")
       if(cursor)
         await cursor.close()
       pushEvent(right("end"))
+      ended = true
     }
 
     return {
