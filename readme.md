@@ -1,5 +1,5 @@
 
-# @piing/service-outbox
+# service-outbox
 
 A module that uses mongodb and creates a tailable capped collection for publishing events for a microservice.
 
